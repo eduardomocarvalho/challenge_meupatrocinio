@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  laravel:
+    build:
+      context: .
+      dockerfile: docker/laravel/Dockerfile
+    image: laravel_app
+    container_name: laravel_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - ./docker/laravel/supervisord.conf:/etc/supervisord.conf
+    networks:
+      - app_network
+    command: sh -c "cp .env.example .env && composer install && php artisan config:cache && php artisan route:cache && php artisan view:cache && php-fpm"
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    image: nginx_server
+    container_name: nginx_server
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www/html
+    networks:
+      - app_network
+    depends_on:
+      - laravel
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
